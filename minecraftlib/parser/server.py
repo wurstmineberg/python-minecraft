@@ -3,16 +3,17 @@ Parser for a minecraft server directory
 """
 
 import os.path
-from .base import Parser
+from parser.base import Parser
 from server_properties import ServerProperties
 
 
 class ServerDirParser(Parser):
+    """Parses a server directory"""
 
     def __init__(self, server_dir):
-        """Parses a server directory"""
         self.server_dir = server_dir
 
+    @property
     def parse_keys(self):
         return [
             'properties',
