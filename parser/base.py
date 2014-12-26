@@ -2,7 +2,7 @@
 General parser superclasses
 """
 
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 
 
 class Parser(metaclass=ABCMeta):
@@ -11,6 +11,7 @@ class Parser(metaclass=ABCMeta):
     def parse_attribute(self, key):
         return None
 
+    @property
     @abstractmethod
     def parse_keys(self):
         return None
@@ -21,7 +22,7 @@ class Parser(metaclass=ABCMeta):
 
     def parse_all(self):
         attributes = {}
-        for key in self.parse_keys():
+        for key in self.parse_keys:
             attributes[key] = self.parse_attribute(key)
 
         return attributes
@@ -56,27 +57,28 @@ class ParsedObject(metaclass=ABCMeta):
     def _get_new_parser(self):
         return None
 
+    @property
     def _parser(self):
         if self._parser_instance is None:
             self._parser_instance = self._get_new_parser()
         return self._parser_instance
 
     def _parse_all(self):
-        self._parser().parse_all()
+        self._parser.parse_all()
 
     def _get_parsed_attribute(self, key):
-        if key not in self._parser().parse_keys():
+        if key not in self._parser.parse_keys():
             raise AttributeError("key: " + key)
 
         if key not in self._attributes:
-            attr = self._parser().parse_attribute(key)
+            attr = self._parser.parse_attribute(key)
             self._attributes[key] = attr
 
         return self._attributes[key]
 
     def _get_all(self):
         """Gets all attributes that are not already loaded."""
-        all_attributes = self._parser().parse_all()
+        all_attributes = self._parser.parse_all()
         if 'properties' in all_attributes:
             raise Exception
 
@@ -134,19 +136,19 @@ class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
         del self._attributes[key]
 
     def __setattr__(self, key, value):
-        if key[0] != '_' and key in self._parser().parse_keys():
+        if key[0] != '_' and key in self._parser.parse_keys():
             self._set_attribute(key, value)
         else:
             super().__setattr__(key, value)
 
     def __setitem__(self, key, value):
-        if key in self._parser().parse_keys():
+        if key in self._parser.parse_keys():
             self._attributes[key] = value
         else:
             raise AttributeError('The key "' + key + '" is not supported')
 
     def __delattr__(self, item):
-        if item in self._parser().parse_keys():
+        if item in self._parser.parse_keys():
             self._del_attribute(item)
         else:
             super().__delattr__(item)
