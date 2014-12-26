@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Class for a minecraft server
 """
@@ -8,22 +7,13 @@ from parser.server import ServerDirParser
 
 
 class Server(ParsedObject):
-    parser_instance = None
-
-    def parser_keys(self):
-        return [
-            'properties',
-        ]
-
-    def parser(self):
-        if not self.parser_instance:
-            self.parser_instance = ServerDirParser(self.server_dir)
-        return self.parser_instance
-        return ServerDirParser(self.server_dir)
 
     def __init__(self, server_dir):
         """Initializes a server"""
-        self.server_dir = server_dir
+        self._server_dir = server_dir
+
+    def _get_new_parser(self):
+        return ServerDirParser(self._server_dir)
 
     def start(self):
         """

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Tests the server object and parser
 """
@@ -8,4 +7,6 @@ from server import Server
 
 def run():
     server = Server("./wurstmineberg_server")
-    print(server.properties)
+    server._get_all()
+    server.properties._get_all()
+    print(server.properties._attributes)

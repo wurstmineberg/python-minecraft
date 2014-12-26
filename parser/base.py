@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 General parser superclasses
 """
@@ -13,32 +12,48 @@ class Parser(object):
     def parse_attribute(self, key):
         return None
 
+    @abstractmethod
+    def parse_keys(self):
+        return None
+
+    @abstractmethod
+    def reload_data(self):
+        pass
+
+    def parse_all(self):
+        attributes = {}
+        for key in self.parse_keys():
+            attributes[key] = self.parse_attribute(key)
+
+        return attributes
+
 
 class ParsedObject(object):
     __metaclass__ = ABCMeta
     _attributes = {}
+    _parser_instance = None
 
-    @abstractproperty
-    def parser_keys(self):
-        return []
-
-    @abstractproperty
-    def parser(self):
+    @abstractmethod
+    def _get_new_parser(self):
         return None
 
-    def _parse_attribute(self, key):
-        return self.parser().parse_attribute(key)
+    def _parser(self):
+        if not self._parser_instance:
+            _parser_instance = self._get_new_parser()
+        return _parser_instance
 
-    def parse_all(self):
-        for key in self.parser_keys():
-            self.parse_attribute(key)
+    def _parse_all(self):
+        self._parser().parse_all()
 
     def _get_parsed_attribute(self, key):
         if key not in self._attributes:
-            attr = self._parse_attribute(key)
+            attr = self._parser().parse_attribute(key)
             self._attributes[key] = attr
 
         return self._attributes[key]
+
+    def _get_all(self):
+        self._attributes = self._parser().parse_all()
 
     def __getattribute__(self, item):
         try:
