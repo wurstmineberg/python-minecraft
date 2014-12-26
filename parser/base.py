@@ -5,8 +5,7 @@ General parser superclasses
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 
-class Parser(object):
-    __metaclass__ = ABCMeta
+class Parser(metaclass=ABCMeta):
 
     @abstractmethod
     def parse_attribute(self, key):
@@ -28,18 +27,18 @@ class Parser(object):
         return attributes
 
 
-class Synthesizer(object):
-    __metaclass__ = ABCMeta
+class Synthesizer(metaclass=ABCMeta):
 
     @abstractmethod
     def write(self, attributes):
         pass
 
 
-class ParsedObject(object):
-    __metaclass__ = ABCMeta
-    _attributes = {}
+class ParsedObject(metaclass=ABCMeta):
     _parser_instance = None
+
+    def __init__(self):
+        self._attributes = {}
 
     @abstractmethod
     def _get_new_parser(self):
@@ -54,9 +53,8 @@ class ParsedObject(object):
         self._parser().parse_all()
 
     def _get_parsed_attribute(self, key):
-        print("key: "+ key)
         if key not in self._parser().parse_keys():
-            raise AttributeError
+            raise AttributeError("key: " + key)
 
         if key not in self._attributes:
             attr = self._parser().parse_attribute(key)
@@ -65,14 +63,20 @@ class ParsedObject(object):
         return self._attributes[key]
 
     def _get_all(self):
-        self._attributes = self._parser().parse_all()
+        """Gets all attributes that are not already loaded."""
+        all_attributes = self._parser().parse_all()
+        if 'properties' in all_attributes:
+            raise Exception
+
+        for key, value in all_attributes.items():
+            if key not in self._attributes:
+                self._attributes[key] = value
 
     def __getattr__(self, item):
         return self._get_parsed_attribute(item)
 
 
-class SynthesizeableParsedObject(ParsedObject):
-    __metaclass__ = ABCMeta
+class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
     _synthesizer_instance = None
 
     @abstractmethod
@@ -80,6 +84,8 @@ class SynthesizeableParsedObject(ParsedObject):
         return None
 
     def _write(self):
+        # First make sure to actually get all objects that are parsed
+        self._get_all()
         self._synthesizer().write(self._attributes)
 
     def _synthesizer(self):

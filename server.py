@@ -10,6 +10,8 @@ class Server(ParsedObject):
 
     def __init__(self, server_dir):
         """Initializes a server"""
+        super().__init__()
+
         self._server_dir = server_dir
 
     def __repr__(self):

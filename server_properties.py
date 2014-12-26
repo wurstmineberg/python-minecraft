@@ -8,6 +8,8 @@ from parser.server_properties import ServerPropertiesParserSynthesizer
 
 class ServerProperties(SynthesizeableParsedObject):
     def __init__(self, properties_filename):
+        super().__init__()
+
         self._properties_filename = properties_filename
 
     def _get_new_parser(self):

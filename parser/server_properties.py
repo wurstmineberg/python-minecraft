@@ -157,7 +157,10 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
             return LevelType(value)
         else:
             # insert escape characters in the string
-            return value.encode('unicode_escape').decode('utf-8')
+            try:
+                return value.encode('unicode_escape').decode('utf-8')
+            except AttributeError:
+                pass
 
 
     def write(self, attributes):
