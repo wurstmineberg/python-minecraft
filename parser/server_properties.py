@@ -2,13 +2,14 @@
 server.properties parser
 """
 
-from .base import Parser, Synthesizer
+from parser.base import Parser, Synthesizer
 from base import Gamemode, Difficulty, LevelType
 
 
 class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
+    """Parses server property files"""
+
     def __init__(self, properties_filename):
-        """Parses a server directory"""
         self.properties_filename = properties_filename
         self.reload_data()
 
@@ -20,6 +21,7 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
                 'op-permission-level', 'player-idle-timeout', 'rcon.port', 'server-port', 'spawn-protection',
                 'view-distance']
 
+    @property
     def parse_keys(self):
         return [
             'allow-flight',

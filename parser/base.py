@@ -22,8 +22,13 @@ class Parser(metaclass=ABCMeta):
 
     def parse_all(self):
         attributes = {}
-        for key in self.parse_keys:
-            attributes[key] = self.parse_attribute(key)
+
+        if self.parse_keys is not None:
+            for key in self.parse_keys:
+                attributes[key] = self.parse_attribute(key)
+        else:
+            raise NotImplementedError('Parser.parse_all() must be overridden if the parser is unchecked (you have'
+                                      'Parser.parse_keys as None)')
 
         return attributes
 
@@ -33,6 +38,60 @@ class Synthesizer(metaclass=ABCMeta):
     @abstractmethod
     def write(self, attributes):
         pass
+
+
+class FileParser(Parser, metaclass=ABCMeta):
+    """Parses a file"""
+
+    import os.stat
+
+    def __init__(self, filename, **open_kwargs):
+        self.filename = filename
+        self._open_kwargs = open_kwargs
+        self.file = None
+        self.reload_file()
+
+    def open(self):
+        self.file = open(self.filename, **self._open_kwargs)
+        self._opened_time = os.stat(self.filename).st_mtime
+
+    def close(self):
+        self.file.close()
+
+    def reload(self):
+        if self.file:
+            self.close_file()
+
+        self.file = self.open_file()
+
+    @property
+    def has_changed(self):
+
+
+
+class FileSynthesizer(Synthesizer, metaclass=ABCMeta):
+    """Synthesizes a file"""
+
+    from threading import Lock
+
+    def __init__(self, filename, **open_kwargs):
+        self.filename = filename
+        self._open_kwargs = open_kwargs
+        if not 'mode' in self._open_kwargs:
+            self._open_kwargs['mode'] = 'w'
+
+        self._write_lock = Lock()
+
+    @abstractmethod
+    def synthesize(self, attributes):
+        return None
+
+    def write(self, attributes):
+        with self._write_lock:
+            data = self.synthesize(attributes)
+
+            with open(self.filename, **self._open_kwargs) as file:
+                file.write(data)
 
 
 class ParsedObject(metaclass=ABCMeta):
@@ -67,8 +126,9 @@ class ParsedObject(metaclass=ABCMeta):
         self._parser.parse_all()
 
     def _get_parsed_attribute(self, key):
-        if key not in self._parser.parse_keys():
-            raise AttributeError("key: " + key)
+        if self._parser.parse_keys is not None:
+            if key not in self._parser.parse_keys:
+                raise AttributeError("key: " + key)
 
         if key not in self._attributes:
             attr = self._parser.parse_attribute(key)
@@ -93,7 +153,6 @@ class ParsedObject(metaclass=ABCMeta):
 
     def __getitem__(self, item):
         return self._get_parsed_attribute(item)
-
 
 
 class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
@@ -136,22 +195,35 @@ class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
         del self._attributes[key]
 
     def __setattr__(self, key, value):
-        if key[0] != '_' and key in self._parser.parse_keys():
+        if key[0] != '_' and self._parser.parse_keys is not None and key in self._parser.parse_keys:
             self._set_attribute(key, value)
         else:
             super().__setattr__(key, value)
 
     def __setitem__(self, key, value):
-        if key in self._parser.parse_keys():
+        if self._parser.parse_keys is not None and key in self._parser.parse_keys:
             self._attributes[key] = value
         else:
             raise AttributeError('The key "' + key + '" is not supported')
 
     def __delattr__(self, item):
-        if item in self._parser.parse_keys():
+        if self._parser.parse_keys is not None and item in self._parser.parse_keys:
             self._del_attribute(item)
         else:
             super().__delattr__(item)
 
     def __delitem__(self, key):
         self._del_attribute(key)
+
+
+class ParsedFileObject(ParsedObject, metaclass=ABCMeta):
+    @abstractmethod
+    def _get_new_parser(self):
+        return None
+
+    @property
+    def _parser(self):
+        if self._parser_instance is None:
+            self._parser_instance = self._get_new_parser()
+        return self._parser_instance
+
