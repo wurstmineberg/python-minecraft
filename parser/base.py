@@ -75,6 +75,10 @@ class ParsedObject(metaclass=ABCMeta):
     def __getattr__(self, item):
         return self._get_parsed_attribute(item)
 
+    def __getitem__(self, item):
+        return self._get_parsed_attribute(item)
+
+
 
 class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
     _synthesizer_instance = None
@@ -99,3 +103,8 @@ class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
         else:
             super().__setattr__(key, value)
 
+    def __setitem__(self, key, value):
+        if key in self._parser().parse_keys():
+            self._attributes[key] = value
+        else:
+            raise AttributeError('The key "' + key + '" is not supported')

@@ -10,5 +10,6 @@ def run():
     print(server.properties)
     print(server.properties.motd)
     server.properties.motd = 'bla'
+    server.properties['rcon.port'] = None
     server.properties._write()
 
