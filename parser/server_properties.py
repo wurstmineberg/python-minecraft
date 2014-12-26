@@ -128,7 +128,7 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
             if result is not None:
                 key, value = result
                 if key.strip() == parseKey.strip():
-                    return self.parse_value(key, value)
+                    return value
 
     def parse_all(self):
         attributes = {}
@@ -148,13 +148,13 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
         elif key in self.int_keys:
             return str(value)
         elif key == 'difficulty':
-            return str(int(value))
+            return str(value.value)
         elif key == 'gamemode':
-            return str(int(value))
+            return str(value.value)
         elif key == 'generator-settings':
             return value
         elif key == 'level-type':
-            return LevelType(value)
+            return value.value
         else:
             # insert escape characters in the string
             try:
