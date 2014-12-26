@@ -62,6 +62,9 @@ class ServerPropertiesParser(Parser):
             self.properties_string = properties_file.readlines()
 
     def parse_value(self, key, value):
+        if value == '':
+            return None
+
         if key in ('allow-flight', 'allow-nether', 'announce-player-achievements', 'enable-query', 'enable-rcon',
                    'enable-command-block', 'force-gamemode', 'generate-structures', 'hardcore', 'online-mode',
                    'pvp', 'snooper-enabled', 'spawn-animals', 'spawn-monsters', 'spawn-npcs', 'use-native-transport',
@@ -72,16 +75,17 @@ class ServerPropertiesParser(Parser):
                      'server-port', 'spawn-protection', 'view-distance'):
             return int(value)
         elif key == 'difficulty':
-            return Difficulty(value)
+            return Difficulty(int(value))
         elif key == 'gamemode':
             return Gamemode(int(value))
         elif key == 'generator-settings':
             # TODO: Add a class to simplify game generation
             return value
         elif key == 'level-type':
-            return LevelType(int(value))
+            return LevelType(value)
         else:
-            return value
+            # process escape characters in the string
+            return bytes(value, 'utf-8').decode('unicode_escape')
 
     def parse_line(self, line):
         if line.strip()[0] == '#':
@@ -93,7 +97,7 @@ class ServerPropertiesParser(Parser):
             return None
 
         key = key_value[0]
-        value = key_value[1]
+        value = self.parse_value(key, key_value[1])
 
         return (key, value)
 

@@ -9,4 +9,4 @@ def run():
     server = Server("./wurstmineberg_server")
     server._get_all()
     server.properties._get_all()
-    print(server.properties._attributes)
+    print(server)
