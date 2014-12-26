@@ -3,8 +3,8 @@ Parser for a minecraft server directory
 """
 
 import os.path
-from parser.base import Parser
-from server_properties import ServerProperties
+from .base import Parser
+from minecraftlib.server_properties import ServerProperties
 
 
 class ServerDirParser(Parser):

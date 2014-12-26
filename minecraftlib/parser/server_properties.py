@@ -2,15 +2,17 @@
 server.properties parser
 """
 
-from parser.base import Parser, Synthesizer
-from base import Gamemode, Difficulty, LevelType
+from .base import FileParser, FileSynthesizer
+from minecraftlib.base import Gamemode, Difficulty, LevelType
 
 
-class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
+class ServerPropertiesParserSynthesizer(FileParser, FileSynthesizer):
     """Parses server property files"""
 
-    def __init__(self, properties_filename):
-        self.properties_filename = properties_filename
+    def __init__(self, filename):
+        _properties_string = None
+        FileParser.__init__(self, filename)
+        FileSynthesizer.__init__(self, filename)
         self.reload_data()
 
     bool_keys = ['allow-flight', 'allow-nether', 'announce-player-achievements', 'enable-query', 'enable-rcon',
@@ -83,8 +85,11 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
 
 
     def reload_data(self):
-        with open(self.properties_filename, mode='rt', encoding='utf-8') as properties_file:
-            self.properties_string = properties_file.readlines()
+        with open(self.filename, encoding='utf-8') as file:
+            self._properties_string = file.readlines()
+
+    def on_file_reload(self):
+        self.reload_data()
 
     def parse_value(self, key, value):
         if value == '':
@@ -125,7 +130,7 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
         return (key, value)
 
     def parse_attribute(self, parseKey):
-        for line in self.properties_string:
+        for line in self._properties_string:
             result = self.parse_line(line)
             if result is not None:
                 key, value = result
@@ -134,7 +139,7 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
 
     def parse_all(self):
         attributes = {}
-        for line in self.properties_string:
+        for line in self._properties_string:
             result = self.parse_line(line)
             if result is not None:
                 key, value = result
@@ -165,7 +170,7 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
                 pass
 
 
-    def write(self, attributes):
+    def synthesize(self, attributes):
         # synthesize properties
         result = '#Minecraft server properties\n'
         result += '#Generated with minecraftlib\n'
@@ -181,6 +186,4 @@ class ServerPropertiesParserSynthesizer(Parser, Synthesizer):
             result += self.synthesize_attribute(key, value)
             result += '\n'
 
-        with open(self.properties_filename, mode='wt', encoding='utf-8') as properties_file:
-            print(result, file=properties_file)
-
+        return result

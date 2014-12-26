@@ -2,8 +2,7 @@
 Defines an abstract JSON parser/synthesizer
 """
 
-from parser.base import Parser, Synthesizer, SynthesizeableParsedObject
-import inc.lazyjson.lazyjson
+from minecraftlib.parser.base import Parser, Synthesizer, SynthesizeableParsedObject
 
 
 class UncheckedJSONParser(Parser):

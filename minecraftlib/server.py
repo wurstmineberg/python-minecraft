@@ -2,8 +2,8 @@
 Class for a minecraft server
 """
 
-from parser.base import ParsedObject
-from parser.server import ServerDirParser
+from .parser.base import ParsedObject
+from .parser.server import ServerDirParser
 
 
 class Server(ParsedObject):
@@ -15,7 +15,7 @@ class Server(ParsedObject):
         self._server_dir = server_dir
 
     def __repr__(self):
-        return '<Server name: '+ self.properties.level-name +' motd: ' + self.properties.motd + '>'
+        return '<Server name: '+ str(self.properties['level-name']) +' motd: ' + str(self.properties.motd) + '>'
 
     def _get_new_parser(self):
         return ServerDirParser(self._server_dir)

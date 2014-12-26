@@ -2,7 +2,7 @@
 Some not so commonly used server classes
 """
 
-from parser.json import UncheckedJSONObject
+from .parser.json import UncheckedJSONObject
 
 
 class ServerBannedIPs(UncheckedJSONObject):

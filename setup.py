@@ -16,7 +16,4 @@ setup(name = 'minecraftlib',
       author_email = 'monkey@farthen.de',
       license = 'MIT',
       packages = ['minecraftlib'],
-      install_requires = [
-          'watchdog>=0.8.2'
-      ]
       )

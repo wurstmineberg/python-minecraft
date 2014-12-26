@@ -3,7 +3,9 @@ General parser superclasses
 """
 
 from abc import ABCMeta, abstractmethod
-
+from threading import Lock, RLock
+import os
+import time
 
 class Parser(metaclass=ABCMeta):
 
@@ -43,36 +45,43 @@ class Synthesizer(metaclass=ABCMeta):
 class FileParser(Parser, metaclass=ABCMeta):
     """Parses a file"""
 
-    import os.stat
-
-    def __init__(self, filename, **open_kwargs):
+    def __init__(self, filename):
         self.filename = filename
-        self._open_kwargs = open_kwargs
-        self.file = None
-        self.reload_file()
+        self._last_stat = os.stat(self.filename)
+        self._last_stat_time = time.time()
 
-    def open(self):
-        self.file = open(self.filename, **self._open_kwargs)
-        self._opened_time = os.stat(self.filename).st_mtime
+    def on_file_reload(self):
+        """Called when the underlying file changes"""
+        pass
 
-    def close(self):
-        self.file.close()
-
-    def reload(self):
-        if self.file:
-            self.close_file()
-
-        self.file = self.open_file()
-
-    @property
     def has_changed(self):
+        """Checks if the file has changed on disk. Returns True exactly once for each change."""
+        now = time.time()
+        if now - self._last_stat_time < 5:
+            return False
 
+        stat = os.stat(self.filename)
+        oldstat = self._last_stat
+
+        self._last_stat = stat
+        self._last_stat_time = now
+
+        if stat.st_mtime != oldstat.st_mtime or stat.st_ino != oldstat.st_ino:
+            return True
+
+        return False
+
+    def reload_if_changed(self):
+        """Checks if the file has changed. If it did, reload it and return True"""
+        if self.has_changed():
+            self.on_file_reload()
+            return True
+
+        return False
 
 
 class FileSynthesizer(Synthesizer, metaclass=ABCMeta):
     """Synthesizes a file"""
-
-    from threading import Lock
 
     def __init__(self, filename, **open_kwargs):
         self.filename = filename
@@ -80,18 +89,20 @@ class FileSynthesizer(Synthesizer, metaclass=ABCMeta):
         if not 'mode' in self._open_kwargs:
             self._open_kwargs['mode'] = 'w'
 
-        self._write_lock = Lock()
+        self.__write_lock = Lock()
 
     @abstractmethod
     def synthesize(self, attributes):
         return None
 
     def write(self, attributes):
-        with self._write_lock:
+        with self.__write_lock:
             data = self.synthesize(attributes)
 
             with open(self.filename, **self._open_kwargs) as file:
                 file.write(data)
+                file.flush()
+                os.fsync(file)
 
 
 class ParsedObject(metaclass=ABCMeta):
@@ -116,29 +127,28 @@ class ParsedObject(metaclass=ABCMeta):
     def _get_new_parser(self):
         return None
 
-    @property
     def _parser(self):
         if self._parser_instance is None:
             self._parser_instance = self._get_new_parser()
         return self._parser_instance
 
     def _parse_all(self):
-        self._parser.parse_all()
+        self._parser().parse_all()
 
     def _get_parsed_attribute(self, key):
-        if self._parser.parse_keys is not None:
-            if key not in self._parser.parse_keys:
+        if self._parser().parse_keys is not None:
+            if key not in self._parser().parse_keys:
                 raise AttributeError("key: " + key)
 
         if key not in self._attributes:
-            attr = self._parser.parse_attribute(key)
+            attr = self._parser().parse_attribute(key)
             self._attributes[key] = attr
 
         return self._attributes[key]
 
     def _get_all(self):
         """Gets all attributes that are not already loaded."""
-        all_attributes = self._parser.parse_all()
+        all_attributes = self._parser().parse_all()
         if 'properties' in all_attributes:
             raise Exception
 
@@ -157,6 +167,10 @@ class ParsedObject(metaclass=ABCMeta):
 
 class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
     _synthesizer_instance = None
+
+    @abstractmethod
+    def _get_new_parser(self):
+        return None
 
     @abstractmethod
     def _get_new_synthesizer(self):
@@ -195,19 +209,19 @@ class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
         del self._attributes[key]
 
     def __setattr__(self, key, value):
-        if key[0] != '_' and self._parser.parse_keys is not None and key in self._parser.parse_keys:
+        if key[0] != '_' and self._parser().parse_keys is not None and key in self._parser().parse_keys:
             self._set_attribute(key, value)
         else:
             super().__setattr__(key, value)
 
     def __setitem__(self, key, value):
-        if self._parser.parse_keys is not None and key in self._parser.parse_keys:
+        if self._parser().parse_keys is not None and key in self._parser().parse_keys:
             self._attributes[key] = value
         else:
             raise AttributeError('The key "' + key + '" is not supported')
 
     def __delattr__(self, item):
-        if self._parser.parse_keys is not None and item in self._parser.parse_keys:
+        if self._parser().parse_keys is not None and item in self._parser().parse_keys:
             self._del_attribute(item)
         else:
             super().__delattr__(item)
@@ -219,11 +233,51 @@ class SynthesizeableParsedObject(ParsedObject, metaclass=ABCMeta):
 class ParsedFileObject(ParsedObject, metaclass=ABCMeta):
     @abstractmethod
     def _get_new_parser(self):
+        """Must be a subclass of FileParser"""
         return None
 
-    @property
-    def _parser(self):
-        if self._parser_instance is None:
-            self._parser_instance = self._get_new_parser()
-        return self._parser_instance
+    def __init__(self, filename):
+        super().__init__()
+        self._filename = filename
+
+    def _get_parsed_attribute(self, key):
+        if self._parser().reload_if_changed():
+            self._attributes = {}
+
+        return super()._get_parsed_attribute(key)
+
+
+
+class SynthesizeableParsedFileObject(SynthesizeableParsedObject, ParsedFileObject, metaclass=ABCMeta):
+    @abstractmethod
+    def _get_new_parser(self):
+        """Must be a subclass of FileParser"""
+        return None
+
+    @abstractmethod
+    def _get_new_synthesizer(self):
+        """Must be a subclass of FileSynthesizer"""
+        return None
+
+    def __init__(self, filename):
+        super().__init__(filename)
+        self.__lock = RLock()
+
+    def _get_parsed_attribute(self, key):
+        with self.__lock:
+            return super()._get_parsed_attribute(key)
+
+    def _set_attribute(self, key, value):
+        with self.__lock:
+            super()._set_attribute(key, value)
+
+            # Saves the file
+            self._synthesizer().write(self._attributes)
+
+    def _del_attribute(self, key):
+        with self.__lock:
+            super()._del_attribute()
+
+            # Saves the file
+            self._synthesizer().write(self._attributes)
 

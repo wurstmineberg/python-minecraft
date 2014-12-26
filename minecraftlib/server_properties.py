@@ -2,11 +2,11 @@
 Server properties
 """
 
-from parser.base import SynthesizeableParsedObject
-from parser.server_properties import ServerPropertiesParserSynthesizer
-from base import Gamemode, Difficulty, Dimension, LevelType
+from .parser.base import SynthesizeableParsedFileObject
+from .parser.server_properties import ServerPropertiesParserSynthesizer
+from .base import Gamemode, Difficulty, Dimension, LevelType
 
-class ServerProperties(SynthesizeableParsedObject):
+class ServerProperties(SynthesizeableParsedFileObject):
     _default_properties = {
         'spawn-protection': 16,
         'max-tick-time': 6000,
@@ -47,17 +47,15 @@ class ServerProperties(SynthesizeableParsedObject):
         'enable-rcon': False
     }
 
-    def __init__(self, properties_filename):
-        super().__init__()
-
-        self._properties_filename = properties_filename
+    def __init__(self, filename):
+        super().__init__(filename)
 
     def reset_to_default(self):
         """This will reset the server.properties file to default"""
         self._attributes = self._default_properties
 
     def _get_new_parser(self):
-        return ServerPropertiesParserSynthesizer(self._properties_filename)
+        return ServerPropertiesParserSynthesizer(self._filename)
 
     def _get_new_synthesizer(self):
         return self._get_new_parser()
