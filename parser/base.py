@@ -41,6 +41,17 @@ class ParsedObject(metaclass=ABCMeta):
         self._attributes = {}
         self._loaded_all = False
 
+    def parsed_dict(self):
+        """
+        Returns a copy of the parsed dict. This is not meant to be altered, use the getitem and setitem functions for
+        that. Example: Server.properties or Server['properties']. As this will load everything from disk first, use it
+        only if you need it
+        """
+        if not self._loaded_all:
+            self._get_all()
+
+        return self._attributes.copy()
+
     @abstractmethod
     def _get_new_parser(self):
         return None
@@ -74,7 +85,7 @@ class ParsedObject(metaclass=ABCMeta):
                 self._attributes[key] = value
 
         self._loaded_all = True
-    
+
     def __getattr__(self, item):
         return self._get_parsed_attribute(item)
 
