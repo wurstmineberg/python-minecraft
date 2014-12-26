@@ -13,7 +13,7 @@ class Server(ParsedObject):
         self._server_dir = server_dir
 
     def __repr__(self):
-        return '<Server motd: ' + self.properties.motd + '>'
+        return '<Server name: '+ self.properties.level-name +' motd: ' + self.properties.motd + '>'
 
     def _get_new_parser(self):
         return ServerDirParser(self._server_dir)

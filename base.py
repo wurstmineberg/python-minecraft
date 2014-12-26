@@ -31,11 +31,3 @@ class LevelType(StrEnum):
     large_biomes = 'LARGEBIOMES'
     amplified = 'AMPLIFIED'
     customized = 'CUSTOMIZED'
-
-def string_to_bool(string):
-    if string.lower() in ["true", "yes"]:
-        return True
-    elif string.lower() in ["false", "no"]:
-        return False
-
-    raise ValueError

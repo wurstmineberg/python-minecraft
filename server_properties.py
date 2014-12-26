@@ -2,16 +2,19 @@
 Server properties
 """
 
-from parser.base import ParsedObject
-from parser.server_properties import ServerPropertiesParser
+from parser.base import SynthesizeableParsedObject
+from parser.server_properties import ServerPropertiesParserSynthesizer
 
 
-class ServerProperties(ParsedObject):
+class ServerProperties(SynthesizeableParsedObject):
     def __init__(self, properties_filename):
         self._properties_filename = properties_filename
 
     def _get_new_parser(self):
-        return ServerPropertiesParser(self._properties_filename)
+        return ServerPropertiesParserSynthesizer(self._properties_filename)
+
+    def _get_new_synthesizer(self):
+        return self._get_new_parser()
 
     def __str__(self):
         return str(self._attributes)
